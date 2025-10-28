@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>FreeTimeAnalyzer</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.example.FreeTimeAnalyzer</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+
+    <!-- Privacy usage description required to prompt for Calendar access -->
+    <key>NSCalendarsUsageDescription</key>
+    <string>FreeTimeAnalyzer needs access to your calendars to calculate free time and show events.</string>
+
+</dict>
+</plist>
