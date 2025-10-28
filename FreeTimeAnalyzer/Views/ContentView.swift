@@ -49,6 +49,9 @@ struct ContentView: View {
                             Button("Refresh Calendars") {
                                 Task { await viewModel.refreshCalendars() }
                             }
+                            Button("Print Calendars (debug)") {
+                                Task { await viewModel.debugPrintCalendars() }
+                            }
                             Button("Open System Settings") {
                                 if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars") {
                                     NSWorkspace.shared.open(url)

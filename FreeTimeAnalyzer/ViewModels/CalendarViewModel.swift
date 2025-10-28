@@ -9,6 +9,10 @@ import Foundation
 import Combine
 import EventKit
 
+#if os(iOS)
+import UIKit
+#endif
+
 class CalendarViewModel: ObservableObject {
     @Published var freeSlots: [DateInterval] = []
     // Expose fetched/busy events for UI display
@@ -17,6 +21,7 @@ class CalendarViewModel: ObservableObject {
     @Published var calendars: [EKCalendar] = []
     @Published var selectedCalendarIdentifier: String = "" // empty = all calendars
     @Published var calendarAccessGranted: Bool = false
+    @Published var calendarAccessError: String? = nil
     private let eventStore = EKEventStore()
 
     // Load calendar events and compute free slots for a specific date
@@ -69,6 +74,28 @@ class CalendarViewModel: ObservableObject {
         await loadAvailableCalendars()
     }
 
+    // Debug helper: print all calendars EventKit can see
+    func debugPrintCalendars() async {
+        let granted = await requestCalendarAccess()
+        DispatchQueue.main.async { self.calendarAccessGranted = granted }
+        guard granted else {
+            print("Cannot print calendars: access not granted")
+            return
+        }
+        let cals = eventStore.calendars(for: .event)
+        print("--- EventKit calendars (\(cals.count)) ---")
+        for cal in cals {
+            let colorDesc: String
+            if let cg = cal.cgColor {
+                colorDesc = "\(cg)"
+            } else {
+                colorDesc = "(no color)"
+            }
+            print("title=\(cal.title), source=\(cal.source.title), id=\(cal.calendarIdentifier), color=\(colorDesc), type=\(cal.type.rawValue)")
+        }
+        print("--- end calendars ---")
+    }
+
     // Simulate an event on a particular date
     func simulateEvent(on date: Date, startHour: Int, endHour: Int) {
         let dayStart = Calendar.current.startOfDay(for: date)
@@ -90,27 +117,89 @@ class CalendarViewModel: ObservableObject {
     }
 
     private func requestCalendarAccess() async -> Bool {
-        // EventKit permission APIs changed in macOS 14. Use the newer API when available
+        // Check current authorization status first to avoid unnecessary prompts
+        let status: EKAuthorizationStatus
+        if #available(macOS 14.0, iOS 17.0, *) {
+            status = EKEventStore.authorizationStatus(for: .event)
+        } else {
+            status = EKEventStore.authorizationStatus(for: .event)
+        }
+
+        switch status {
+        case .authorized, .fullAccess:
+            DispatchQueue.main.async {
+                self.calendarAccessError = nil
+            }
+            return true
+        case .restricted:
+            DispatchQueue.main.async {
+                self.calendarAccessError = "Calendar access is restricted on this device."
+            }
+            return false
+        case .denied:
+            DispatchQueue.main.async {
+                self.calendarAccessError = "Calendar access was denied. Please enable access in Settings."
+            }
+            return false
+        case .notDetermined:
+            break // fall through to request
+        case .writeOnly:
+            // write-only authorization means we can't read events — surface a helpful message
+            DispatchQueue.main.async {
+                self.calendarAccessError = "Calendar access is write-only on this device."
+            }
+            return false
+        @unknown default:
+            break
+        }
+
+        // Request access using the appropriate API per platform/version
         if #available(macOS 14.0, *) {
             return await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
-                eventStore.requestFullAccessToEventsWithCompletion { granted, error in
-                    if let error = error {
-                        print("Calendar access error: \(error.localizedDescription)")
+                self.eventStore.requestFullAccessToEvents { granted, error in
+                    if let err = error as NSError? {
+                        let msg = "Calendar access error: \(err.domain) (code \(err.code)) - \(err.localizedDescription)"
+                        print(msg)
+                        DispatchQueue.main.async { self.calendarAccessError = msg }
+                    } else if !granted {
+                        DispatchQueue.main.async {
+                            self.calendarAccessError = "Calendar access was not granted."
+                        }
+                    } else {
+                        DispatchQueue.main.async { self.calendarAccessError = nil }
                     }
                     continuation.resume(returning: granted)
                 }
             }
         } else {
+            // iOS, iPadOS, and earlier macOS versions
             return await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
-                eventStore.requestAccess(to: .event) { granted, error in
-                    if let error = error {
-                        print("Calendar access error: \(error.localizedDescription)")
+                self.eventStore.requestAccess(to: .event) { granted, error in
+                    if let err = error as NSError? {
+                        let msg = "Calendar access error: \(err.domain) (code \(err.code)) - \(err.localizedDescription)"
+                        print(msg)
+                        DispatchQueue.main.async { self.calendarAccessError = msg }
+                    } else if !granted {
+                        DispatchQueue.main.async {
+                            self.calendarAccessError = "Calendar access was not granted."
+                        }
+                    } else {
+                        DispatchQueue.main.async { self.calendarAccessError = nil }
                     }
                     continuation.resume(returning: granted)
                 }
             }
         }
     }
+
+    #if os(iOS)
+    func openAppSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        if UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+        }
+    }
+    #endif
 
     private func fetchEvents(between start: Date, and end: Date, calendarIdentifier: String) -> [EKEvent] {
         var calendarsToUse: [EKCalendar]? = nil

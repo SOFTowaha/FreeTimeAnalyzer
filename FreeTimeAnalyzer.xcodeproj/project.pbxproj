@@ -6,8 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		4EAAB01F2EB130320091FC04 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 4EAAB01E2EB130320091FC04 /* Info.plist */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		4EAAAF6D2EB11E670091FC04 /* FreeTimeAnalyzer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FreeTimeAnalyzer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4EAAB01E2EB130320091FC04 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -32,6 +37,7 @@
 		4EAAAF642EB11E670091FC04 = {
 			isa = PBXGroup;
 			children = (
+				4EAAB01E2EB130320091FC04 /* Info.plist */,
 				4EAAAF6F2EB11E670091FC04 /* FreeTimeAnalyzer */,
 				4EAAAF6E2EB11E670091FC04 /* Products */,
 			);
@@ -109,6 +115,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4EAAB01F2EB130320091FC04 /* Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -259,7 +266,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = FreeTimeAnalyzer/FreeTimeAnalyzer/Info.plist;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -292,7 +299,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = FreeTimeAnalyzer/FreeTimeAnalyzer/Info.plist;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
