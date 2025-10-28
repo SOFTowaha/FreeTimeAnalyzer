@@ -1,6 +1,6 @@
 # FreeTimeAnalyzer
 
-FreeTimeAnalyzer is a small macOS SwiftUI app that analyzes calendar events and computes "free time" within a chosen work window. It supports selecting calendars, simulating events, and visualizing free slots and fetched events.
+FreeTimeAnalyzer is a small macOS SwiftUI app that analyzes calendar events and computes "free time" within a chosen work window. It supports selecting calendars, simulating events, and visualizing free slots and fetched events. It is a s contenous development so, please feel free to suggest if you have any idea. 
 
 ## Quick summary
 - Language: Swift / SwiftUI
@@ -91,5 +91,4 @@ open "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"
 ## Contact
 - For more help, run the app from Xcode and paste console logs if you hit permission failures — I can help interpret them and propose the next steps.
 
----
-README generated and added to repository by the development assistant.
+
