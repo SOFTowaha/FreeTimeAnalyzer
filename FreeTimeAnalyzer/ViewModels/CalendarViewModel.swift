@@ -24,6 +24,25 @@ class CalendarViewModel: ObservableObject {
     @Published var calendarAccessError: String? = nil
     private let eventStore = EKEventStore()
     @Published var lastSync: Date? = nil
+    // Settings persisted in the view model
+    @Published var workStart: Int = 9
+    @Published var workEnd: Int = 17
+    @Published var autoSyncMinutes: Int = 0
+    @Published var calendarDisplayMode: CalendarDisplayMode = .year
+
+    enum CalendarDisplayMode: String, CaseIterable, Identifiable {
+        case year
+        case month
+        case week
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .year: return "Year"
+            case .month: return "Month"
+            case .week: return "Week"
+            }
+        }
+    }
 
     // Load calendar events and compute free slots for a specific date
     func loadCalendarData(for date: Date, startHour: Int, endHour: Int) async {

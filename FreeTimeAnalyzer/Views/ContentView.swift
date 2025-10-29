@@ -12,11 +12,9 @@ import Foundation
 
 struct ContentView: View {
     @StateObject private var viewModel = CalendarViewModel()
-    @State private var workingStart = 9
-    @State private var workingEnd = 17
     @State private var selectedDate = Date()
-    @State private var autoSyncMinutes: Int = 0
     @State private var autoSyncTask: Task<Void, Never>? = nil
+    @State private var showingSettings: Bool = false
 
     var body: some View {
     NavigationSplitView {
@@ -70,7 +68,7 @@ struct ContentView: View {
                 // Always-available debug actions
                 HStack(spacing: 8) {
                     Button("Print Events (debug)") {
-                        Task { await viewModel.debugPrintEvents(for: selectedDate, startHour: workingStart, endHour: workingEnd) }
+                        Task { await viewModel.debugPrintEvents(for: selectedDate, startHour: viewModel.workStart, endHour: viewModel.workEnd) }
                     }
                     .buttonStyle(GlassButtonStyle())
 
@@ -81,59 +79,22 @@ struct ContentView: View {
                 }
                 .padding(.horizontal)
 
-                // Sync controls
+                // Settings moved to SettingsView — show button
                 HStack(spacing: 12) {
-                    Button("Sync Now") {
-                        Task {
-                            await viewModel.syncNow(for: selectedDate, startHour: workingStart, endHour: workingEnd)
-                        }
+                    Button("Open Settings") {
+                        showingSettings = true
                     }
+                    .buttonStyle(GlassButtonStyle())
 
-                    Picker("Auto-sync", selection: $autoSyncMinutes) {
-                        Text("Off").tag(0)
-                        Text("5 min").tag(5)
-                        Text("10 min").tag(10)
-                        Text("15 min").tag(15)
+                    Button("Sync Now") {
+                        Task { await viewModel.syncNow(for: selectedDate, startHour: viewModel.workStart, endHour: viewModel.workEnd) }
                     }
-                    .pickerStyle(.menu)
-                    .onChange(of: autoSyncMinutes) { newValue in
-                        // cancel previous task
-                        autoSyncTask?.cancel()
-                        autoSyncTask = nil
-                        if newValue > 0 {
-                            autoSyncTask = Task {
-                                while !Task.isCancelled {
-                                    await viewModel.syncNow(for: selectedDate, startHour: workingStart, endHour: workingEnd)
-                                    do {
-                                        try await Task.sleep(nanoseconds: UInt64(newValue) * 60 * 1_000_000_000)
-                                    } catch {
-                                        break
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    .buttonStyle(GlassButtonStyle())
                 }
                 .padding(.horizontal)
 
                 VStack {
-                    HStack {
-                        Text("Workday Start: \(workingStart):00")
-                            .font(.subheadline)
-                        Spacer()
-                        Stepper("", value: $workingStart, in: 0...23)
-                            .labelsHidden()
-                    }
-                    .glassControl()
-
-                    HStack {
-                        Text("Workday End: \(workingEnd):00")
-                            .font(.subheadline)
-                        Spacer()
-                        Stepper("", value: $workingEnd, in: 1...24)
-                            .labelsHidden()
-                    }
-                    .glassControl()
+                    // Workday shifted to Settings
                 }
                 .padding(.horizontal)
 
@@ -141,7 +102,7 @@ struct ContentView: View {
 
                 VStack(spacing: 8) {
                     Button("Calculate Free Time") {
-                        Task { await viewModel.loadCalendarData(for: selectedDate, startHour: workingStart, endHour: workingEnd) }
+                        Task { await viewModel.loadCalendarData(for: selectedDate, startHour: viewModel.workStart, endHour: viewModel.workEnd) }
                     }
                     .buttonStyle(GlassButtonStyle(cornerRadius: 12))
 
@@ -174,26 +135,29 @@ struct ContentView: View {
                     }
                     Spacer()
                     HStack(spacing: 12) {
-                        if let last = viewModel.lastSync {
-                            Text("Last sync: \(last.formatted(.dateTime.hour().minute()))")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        } else {
-                            Text("Last sync: —")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                            if let last = viewModel.lastSync {
+                                Text("Last sync: \(last.formatted(.dateTime.hour().minute()))")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text("Last sync: —")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
                         Button(action: {
-                            Task { await viewModel.syncNow(for: selectedDate, startHour: workingStart, endHour: workingEnd) }
+                            Task { await viewModel.syncNow(for: selectedDate, startHour: viewModel.workStart, endHour: viewModel.workEnd) }
                         }) {
                             Image(systemName: "arrow.clockwise")
                         }
-                        .buttonStyle(GlassButtonStyle())
+                            .buttonStyle(GlassButtonStyle())
                     }
                 }
                 .padding(12)
                 .background(.ultraThinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                // Calendar display (year/month/week)
+                CalendarDisplayView(selectedDate: $selectedDate, viewModel: viewModel)
 
                 FreeTimePanel(freeSlots: viewModel.freeSlots)
 
@@ -207,21 +171,37 @@ struct ContentView: View {
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .shadow(color: Color.black.opacity(0.04), radius: 12, x: 0, y: 6)
             .onChange(of: selectedDate) { _, newDate in
-                Task { await viewModel.loadCalendarData(for: newDate, startHour: workingStart, endHour: workingEnd) }
+                Task { await viewModel.loadCalendarData(for: newDate, startHour: viewModel.workStart, endHour: viewModel.workEnd) }
             }
-            .onChange(of: workingStart) { _, newStart in
-                Task { await viewModel.loadCalendarData(for: selectedDate, startHour: newStart, endHour: workingEnd) }
+            .onChange(of: viewModel.workStart) { _, newStart in
+                Task { await viewModel.loadCalendarData(for: selectedDate, startHour: newStart, endHour: viewModel.workEnd) }
             }
-            .onChange(of: workingEnd) { _, newEnd in
-                Task { await viewModel.loadCalendarData(for: selectedDate, startHour: workingStart, endHour: newEnd) }
+            .onChange(of: viewModel.workEnd) { _, newEnd in
+                Task { await viewModel.loadCalendarData(for: selectedDate, startHour: viewModel.workStart, endHour: newEnd) }
             }
             .onChange(of: viewModel.selectedCalendarIdentifier) { _, _ in
-                Task { await viewModel.loadCalendarData(for: selectedDate, startHour: workingStart, endHour: workingEnd) }
+                Task { await viewModel.loadCalendarData(for: selectedDate, startHour: viewModel.workStart, endHour: viewModel.workEnd) }
             }
-            .onChange(of: autoSyncMinutes) { _, _ in }
+            .onChange(of: viewModel.autoSyncMinutes) { newValue in
+                // manage auto-sync background task
+                autoSyncTask?.cancel()
+                autoSyncTask = nil
+                if newValue > 0 {
+                    autoSyncTask = Task {
+                        while !Task.isCancelled {
+                            await viewModel.syncNow(for: selectedDate, startHour: viewModel.workStart, endHour: viewModel.workEnd)
+                            do { try await Task.sleep(nanoseconds: UInt64(newValue) * 60 * 1_000_000_000) }
+                            catch { break }
+                        }
+                    }
+                }
+            }
             .task {
                 await viewModel.loadAvailableCalendars()
-                await viewModel.loadCalendarData(for: selectedDate, startHour: workingStart, endHour: workingEnd)
+                await viewModel.loadCalendarData(for: selectedDate, startHour: viewModel.workStart, endHour: viewModel.workEnd)
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView(viewModel: viewModel)
             }
             .onDisappear {
                 autoSyncTask?.cancel()
