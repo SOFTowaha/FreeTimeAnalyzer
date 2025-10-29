@@ -2,7 +2,7 @@
 //  EventsList.swift
 //  FreeTimeAnalyzer
 //
-//  Created by assistant on 2025-10-28.
+//  Created by Syed Omar Faruk Towaha on 2025-10-28.
 //
 
 import SwiftUI
@@ -24,9 +24,24 @@ struct EventsList: View {
                 ForEach(events, id: \.startDate) { event in
                     HStack {
                         VStack(alignment: .leading) {
-                            Text(event.title ?? "(No title)")
-                                .font(.body)
-                                .foregroundColor(.primary)
+                            HStack(spacing: 8) {
+                                Text(event.title ?? "(No title)")
+                                    .font(.body)
+                                    .foregroundColor(.primary)
+
+                                // Calendar name + color
+                                if let cal = event.calendar {
+                                    HStack(spacing: 6) {
+                                        Circle()
+                                            .fill(Color(cal.cgColor ?? .black))
+                                            .frame(width: 10, height: 10)
+                                        Text(cal.title)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                            }
+
                             Text(timeRange(for: event))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
