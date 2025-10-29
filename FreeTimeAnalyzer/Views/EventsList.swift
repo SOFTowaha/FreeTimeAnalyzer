@@ -21,7 +21,8 @@ struct EventsList: View {
                 Text("No events for this day.")
                     .foregroundColor(.secondary)
             } else {
-                ForEach(events, id: \.startDate) { event in
+                ForEach(events.indices, id: \.self) { idx in
+                    let event = events[idx]
                     HStack {
                         VStack(alignment: .leading) {
                             HStack(spacing: 8) {
@@ -48,11 +49,17 @@ struct EventsList: View {
                         }
                         Spacer()
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 8)
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
             }
         }
         .padding()
+        .background(.thinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 6)
     }
 
     private func timeRange(for event: EKEvent) -> String {

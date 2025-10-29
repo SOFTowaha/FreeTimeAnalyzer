@@ -143,6 +143,10 @@ struct ContentView: View {
                 Spacer()
             }
             .padding(.top)
+            .padding(.all, 8)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
         } detail: {
             // Main content: calendar summary and free slots
             VStack(spacing: 16) {
@@ -157,6 +161,9 @@ struct ContentView: View {
             }
             .padding()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .shadow(color: Color.black.opacity(0.04), radius: 12, x: 0, y: 6)
             .onChange(of: selectedDate) { _, newDate in
                 Task { await viewModel.loadCalendarData(for: newDate, startHour: workingStart, endHour: workingEnd) }
             }
@@ -180,6 +187,11 @@ struct ContentView: View {
             }
         }
         .navigationSplitViewStyle(.balanced)
+        .padding(12)
+        .background(
+            // subtle overall background tint to emulate macOS glass
+            LinearGradient(colors: [Color(.windowBackgroundColor).opacity(0.02), Color(.windowBackgroundColor).opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        )
     }
 }
 
