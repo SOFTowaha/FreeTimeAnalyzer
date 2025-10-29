@@ -23,6 +23,7 @@ class CalendarViewModel: ObservableObject {
     @Published var calendarAccessGranted: Bool = false
     @Published var calendarAccessError: String? = nil
     private let eventStore = EKEventStore()
+    @Published var lastSync: Date? = nil
 
     // Load calendar events and compute free slots for a specific date
     func loadCalendarData(for date: Date, startHour: Int, endHour: Int) async {
@@ -46,6 +47,7 @@ class CalendarViewModel: ObservableObject {
         DispatchQueue.main.async {
             self.events = fetched
             self.freeSlots = self.calculateFreeTime(workStart: workStart, workEnd: workEnd, events: fetched)
+            self.lastSync = Date()
         }
     }
 
@@ -203,6 +205,9 @@ class CalendarViewModel: ObservableObject {
         }
 
         let endTime = Date()
+        DispatchQueue.main.async {
+            self.lastSync = endTime
+        }
         print("[Sync] finished sync at \(endTime) — fetched \(self.calendars.count) calendars and \(fetched.count) events; duration: \(endTime.timeIntervalSince(startTime))s")
     }
 

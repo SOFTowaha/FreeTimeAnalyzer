@@ -8,6 +8,7 @@
 import SwiftUI
 import EventKit
 import AppKit
+import Foundation
 
 struct ContentView: View {
     @StateObject private var viewModel = CalendarViewModel()
@@ -39,6 +40,7 @@ struct ContentView: View {
                     }
                 }
                 .pickerStyle(.menu)
+                .glassControl(cornerRadius: 12)
                 .padding(.horizontal)
 
                 if !viewModel.calendarAccessGranted {
@@ -70,9 +72,12 @@ struct ContentView: View {
                     Button("Print Events (debug)") {
                         Task { await viewModel.debugPrintEvents(for: selectedDate, startHour: workingStart, endHour: workingEnd) }
                     }
+                    .buttonStyle(GlassButtonStyle())
+
                     Button("Print Calendars (debug)") {
                         Task { await viewModel.debugPrintCalendars() }
                     }
+                    .buttonStyle(GlassButtonStyle())
                 }
                 .padding(.horizontal)
 
@@ -114,14 +119,21 @@ struct ContentView: View {
                 VStack {
                     HStack {
                         Text("Workday Start: \(workingStart):00")
+                            .font(.subheadline)
                         Spacer()
                         Stepper("", value: $workingStart, in: 0...23)
+                            .labelsHidden()
                     }
+                    .glassControl()
+
                     HStack {
                         Text("Workday End: \(workingEnd):00")
+                            .font(.subheadline)
                         Spacer()
                         Stepper("", value: $workingEnd, in: 1...24)
+                            .labelsHidden()
                     }
+                    .glassControl()
                 }
                 .padding(.horizontal)
 
@@ -131,12 +143,12 @@ struct ContentView: View {
                     Button("Calculate Free Time") {
                         Task { await viewModel.loadCalendarData(for: selectedDate, startHour: workingStart, endHour: workingEnd) }
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(GlassButtonStyle(cornerRadius: 12))
 
                     Button("Simulate Event 14:00-15:00") {
                         viewModel.simulateEvent(on: selectedDate, startHour: 14, endHour: 15)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(GlassButtonStyle(cornerRadius: 12))
                 }
                 .padding()
 
@@ -162,16 +174,21 @@ struct ContentView: View {
                     }
                     Spacer()
                     HStack(spacing: 12) {
-                        // Last sync placeholder — updated by viewModel if implemented later
-                        Text("Last sync: —")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        if let last = viewModel.lastSync {
+                            Text("Last sync: \(last.formatted(.dateTime.hour().minute()))")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("Last sync: —")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                         Button(action: {
                             Task { await viewModel.syncNow(for: selectedDate, startHour: workingStart, endHour: workingEnd) }
                         }) {
                             Image(systemName: "arrow.clockwise")
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(GlassButtonStyle())
                     }
                 }
                 .padding(12)
