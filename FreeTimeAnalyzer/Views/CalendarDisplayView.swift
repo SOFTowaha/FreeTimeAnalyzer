@@ -29,7 +29,7 @@ struct YearCalendarView: View {
     var body: some View {
         ScrollView {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
-                ForEach(months, id: \.(self)) { idx in
+                ForEach(months, id: \.self) { idx in
                     if let monthDate = Calendar.current.date(byAdding: .month, value: idx, to: yearStart) {
                         MiniMonthView(month: monthDate)
                             .frame(minHeight: 140)
@@ -147,7 +147,7 @@ struct MonthGrid: View {
                         .frame(maxWidth: .infinity)
                 }
             }
-            ForEach(0..<rows(for: days.count), id: \.(self)) { r in
+            ForEach(0..<rows(for: days.count), id: \.self) { r in
                 HStack(spacing: 6) {
                     ForEach(0..<7) { c in
                         let idx = r * 7 + c
