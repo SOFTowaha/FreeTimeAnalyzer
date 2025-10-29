@@ -96,6 +96,45 @@ class CalendarViewModel: ObservableObject {
         print("--- end calendars ---")
     }
 
+    // Debug helper: print events and the calendar each event belongs to
+    func debugPrintEvents(for date: Date, startHour: Int, endHour: Int) async {
+        let granted = await requestCalendarAccess()
+        DispatchQueue.main.async { self.calendarAccessGranted = granted }
+        guard granted else {
+            print("Cannot print events: access not granted")
+            return
+        }
+
+        let dayStart = Calendar.current.startOfDay(for: date)
+        guard let workStart = Calendar.current.date(bySettingHour: startHour, minute: 0, second: 0, of: dayStart),
+              let workEnd = Calendar.current.date(bySettingHour: endHour, minute: 0, second: 0, of: dayStart) else {
+            print("Invalid start/end for debugPrintEvents")
+            return
+        }
+
+        // If a specific calendar is selected, limit to that calendar
+        var calendarsToUse: [EKCalendar]? = nil
+        if !selectedCalendarIdentifier.isEmpty, let cal = eventStore.calendar(withIdentifier: selectedCalendarIdentifier) {
+            calendarsToUse = [cal]
+        }
+
+        let predicate = eventStore.predicateForEvents(withStart: workStart, end: workEnd, calendars: calendarsToUse)
+        let events = eventStore.events(matching: predicate)
+
+        print("--- EventKit events ---")
+        print("Events count: \(events.count) between \(workStart) and \(workEnd)")
+        for ev in events {
+            let cal = ev.calendar
+            let calTitle = cal?.title ?? "(unknown calendar)"
+            let calSource = cal?.source.title ?? "(unknown source)"
+            let calId = cal?.calendarIdentifier ?? "(no id)"
+            let start = ev.startDate.map { "\($0)" } ?? "(no start)"
+            let end = ev.endDate.map { "\($0)" } ?? "(no end)"
+            print("Calendar: \(calTitle) [id=\(calId)] source=\(calSource) -> Event: '\(ev.title ?? "(no title)")' \(start) - \(end)")
+        }
+        print("--- end events ---")
+    }
+
     // Simulate an event on a particular date
     func simulateEvent(on date: Date, startHour: Int, endHour: Int) {
         let dayStart = Calendar.current.startOfDay(for: date)
@@ -114,6 +153,57 @@ class CalendarViewModel: ObservableObject {
             self.events = [simulatedEvent]
             self.freeSlots = self.calculateFreeTime(workStart: simStart, workEnd: simEnd, events: [simulatedEvent])
         }
+    }
+
+    // Force a full sync: reset EventStore caches, reload calendars and events for the given window
+    func syncNow(for date: Date, startHour: Int, endHour: Int) async {
+        let startTime = Date()
+        print("[Sync] starting sync at \(startTime)")
+
+        let granted = await requestCalendarAccess()
+        DispatchQueue.main.async { self.calendarAccessGranted = granted }
+        guard granted else {
+            print("[Sync] calendar access not granted")
+            return
+        }
+
+        // Reset the event store to clear caches and force fresh data from providers
+        eventStore.reset()
+
+        // Reload calendars
+        let allCals = eventStore.calendars(for: .event)
+        DispatchQueue.main.async {
+            self.calendars = allCals.sorted { (a, b) in
+                let sa = a.source.title.lowercased()
+                let sb = b.source.title.lowercased()
+                if sa == sb { return a.title.lowercased() < b.title.lowercased() }
+                return sa < sb
+            }
+        }
+
+        // Compute start/end for the day
+        let dayStart = Calendar.current.startOfDay(for: date)
+        guard let workStart = Calendar.current.date(bySettingHour: startHour, minute: 0, second: 0, of: dayStart),
+              let workEnd = Calendar.current.date(bySettingHour: endHour, minute: 0, second: 0, of: dayStart) else {
+            print("[Sync] invalid work window")
+            return
+        }
+
+        // Fetch events (respect selected calendar if set)
+        var calendarsToUse: [EKCalendar]? = nil
+        if !selectedCalendarIdentifier.isEmpty, let cal = eventStore.calendar(withIdentifier: selectedCalendarIdentifier) {
+            calendarsToUse = [cal]
+        }
+        let predicate = eventStore.predicateForEvents(withStart: workStart, end: workEnd, calendars: calendarsToUse)
+        let fetched = eventStore.events(matching: predicate)
+
+        DispatchQueue.main.async {
+            self.events = fetched
+            self.freeSlots = self.calculateFreeTime(workStart: workStart, workEnd: workEnd, events: fetched)
+        }
+
+        let endTime = Date()
+        print("[Sync] finished sync at \(endTime) — fetched \(self.calendars.count) calendars and \(fetched.count) events; duration: \(endTime.timeIntervalSince(startTime))s")
     }
 
     private func requestCalendarAccess() async -> Bool {

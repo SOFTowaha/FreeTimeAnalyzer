@@ -14,6 +14,8 @@ struct ContentView: View {
     @State private var workingStart = 9
     @State private var workingEnd = 17
     @State private var selectedDate = Date()
+    @State private var autoSyncMinutes: Int = 0
+    @State private var autoSyncTask: Task<Void, Never>? = nil
 
     var body: some View {
         NavigationSplitView {
@@ -62,6 +64,52 @@ struct ContentView: View {
                     }
                     .padding(.horizontal)
                 }
+
+                // Always-available debug actions
+                HStack(spacing: 8) {
+                    Button("Print Events (debug)") {
+                        Task { await viewModel.debugPrintEvents(for: selectedDate, startHour: workingStart, endHour: workingEnd) }
+                    }
+                    Button("Print Calendars (debug)") {
+                        Task { await viewModel.debugPrintCalendars() }
+                    }
+                }
+                .padding(.horizontal)
+
+                // Sync controls
+                HStack(spacing: 12) {
+                    Button("Sync Now") {
+                        Task {
+                            await viewModel.syncNow(for: selectedDate, startHour: workingStart, endHour: workingEnd)
+                        }
+                    }
+
+                    Picker("Auto-sync", selection: $autoSyncMinutes) {
+                        Text("Off").tag(0)
+                        Text("5 min").tag(5)
+                        Text("10 min").tag(10)
+                        Text("15 min").tag(15)
+                    }
+                    .pickerStyle(.menu)
+                    .onChange(of: autoSyncMinutes) { newValue in
+                        // cancel previous task
+                        autoSyncTask?.cancel()
+                        autoSyncTask = nil
+                        if newValue > 0 {
+                            autoSyncTask = Task {
+                                while !Task.isCancelled {
+                                    await viewModel.syncNow(for: selectedDate, startHour: workingStart, endHour: workingEnd)
+                                    do {
+                                        try await Task.sleep(nanoseconds: UInt64(newValue) * 60 * 1_000_000_000)
+                                    } catch {
+                                        break
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal)
 
                 VStack {
                     HStack {
@@ -121,9 +169,14 @@ struct ContentView: View {
             .onChange(of: viewModel.selectedCalendarIdentifier) { _, _ in
                 Task { await viewModel.loadCalendarData(for: selectedDate, startHour: workingStart, endHour: workingEnd) }
             }
+            .onChange(of: autoSyncMinutes) { _, _ in }
             .task {
                 await viewModel.loadAvailableCalendars()
                 await viewModel.loadCalendarData(for: selectedDate, startHour: workingStart, endHour: workingEnd)
+            }
+            .onDisappear {
+                autoSyncTask?.cancel()
+                autoSyncTask = nil
             }
         }
         .navigationSplitViewStyle(.balanced)
