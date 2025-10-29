@@ -18,7 +18,7 @@ struct ContentView: View {
     @State private var autoSyncTask: Task<Void, Never>? = nil
 
     var body: some View {
-        NavigationSplitView {
+    NavigationSplitView {
             // Sidebar: date picker (graphical) + controls
             VStack(spacing: 16) {
                 DatePicker("Select Date", selection: $selectedDate, displayedComponents: .date)
@@ -144,14 +144,39 @@ struct ContentView: View {
             }
             .padding(.top)
             .padding(.all, 8)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
+            .background(.regularMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 6)
         } detail: {
             // Main content: calendar summary and free slots
             VStack(spacing: 16) {
-                Text(selectedDate, style: .date)
-                    .font(.title2)
+                // Header (glass) with title and quick status
+                HStack(alignment: .center) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("FreeTimeAnalyzer")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        Text(selectedDate, style: .date)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    HStack(spacing: 12) {
+                        // Last sync placeholder — updated by viewModel if implemented later
+                        Text("Last sync: —")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Button(action: {
+                            Task { await viewModel.syncNow(for: selectedDate, startHour: workingStart, endHour: workingEnd) }
+                        }) {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+                .padding(12)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                 FreeTimePanel(freeSlots: viewModel.freeSlots)
 

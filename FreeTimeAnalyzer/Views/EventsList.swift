@@ -57,9 +57,16 @@ struct EventsList: View {
             }
         }
         .padding()
-        .background(.thinMaterial)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color.primary.opacity(0.03), lineWidth: 1)
+            }
+        )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 6)
+        .shadow(color: Color.black.opacity(0.05), radius: 12, x: 0, y: 8)
     }
 
     private func timeRange(for event: EKEvent) -> String {
